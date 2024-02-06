@@ -3,30 +3,67 @@ import OrderBook, { BookEntry, Price } from "../ws/Book";
 import "./orderbook.scss";
 
 const wsUrl = "wss://api-pub.bitfinex.com/ws/2";
+interface CummulativeBookEntry extends BookEntry {
+  cummulativeTotal: number;
+}
+interface NormalizedBookEntry extends CummulativeBookEntry {
+  normalizedValue: number;
+}
 const OrderBookRenderer = () => {
-  const [asks, setAsks] = useState<{ [price: Price]: BookEntry }>({});
-  const [bids, setBids] = useState<{ [price: Price]: BookEntry }>({});
+  const [asks, setAsks] = useState<{ [price: Price]: NormalizedBookEntry }>({});
+  const [bids, setBids] = useState<{ [price: Price]: NormalizedBookEntry }>({});
   useEffect(() => {
     const orderBook = new OrderBook(wsUrl);
     const handleOrderBookUpdate = (updatedOrderBook: {
       [price: Price]: BookEntry;
     }) => {
-      const askEntries: { [price: Price]: BookEntry } = {};
-      const bidEntries: { [price: Price]: BookEntry } = {};
+      const askEntries: { [price: Price]: CummulativeBookEntry } = {};
+      const bidEntries: { [price: Price]: CummulativeBookEntry } = {};
+      let cummulativeAskTotal = 0;
+      let cummulativeBidTotal = 0;
+      let maxAskTotal = 0;
+      let maxBidTotal = 0;
       for (const price in updatedOrderBook) {
-        if (updatedOrderBook[price].amount < 0) {
-          askEntries[price] = updatedOrderBook[price];
+        const entry = updatedOrderBook[price];
+        if (entry.amount < 0) {
+          cummulativeAskTotal += Math.abs(entry.amount);
+          maxAskTotal = Math.max(maxAskTotal, cummulativeAskTotal);
+          askEntries[price] = {
+            ...entry,
+            cummulativeTotal: cummulativeAskTotal,
+          };
         } else if (updatedOrderBook[price].amount > 0) {
-          bidEntries[price] = updatedOrderBook[price];
+          cummulativeBidTotal += Math.abs(entry.amount);
+          bidEntries[price] = {
+            ...entry,
+            cummulativeTotal: cummulativeBidTotal,
+          };
+          maxBidTotal = Math.max(maxBidTotal, cummulativeBidTotal);
         }
       }
-      setAsks(askEntries);
-      setBids(bidEntries);
+      const normalizedAskEntries = normalize(askEntries, maxAskTotal);
+      const normalizedBidEntries = normalize(bidEntries, maxBidTotal);
+
+      setAsks(normalizedAskEntries);
+      setBids(normalizedBidEntries);
     };
     orderBook.addNotifier(handleOrderBookUpdate);
-    console.log("test");
+
     //write a clean up function later
   }, []);
+
+  const normalize = (
+    entries: { [price: Price]: CummulativeBookEntry },
+    maxTotal: number
+  ) => {
+    const normalizedEntries: { [price: Price]: NormalizedBookEntry } = {};
+    for (const price in entries) {
+      const entry = entries[price];
+      const normalizedTotal = (entry.cummulativeTotal / maxTotal) * 100;
+      normalizedEntries[price] = { ...entry, normalizedValue: normalizedTotal };
+    }
+    return normalizedEntries;
+  };
   return (
     <div className="orderBookContainer">
       <table className="buyTable">
@@ -38,13 +75,21 @@ const OrderBookRenderer = () => {
           </tr>
         </thead>
         <tbody>
-          {Object.entries(bids).map(([price, { count, amount }]) => (
-            <tr key={price}>
-              <td>{count}</td>
-              <td className="rightAlign">{amount}</td>
-              <td>{price}</td>
-            </tr>
-          ))}
+          {Object.entries(bids).map(
+            ([price, { count, amount, normalizedValue }]) => (
+              <tr key={price} className="dataRow">
+                <td>{count}</td>
+                <td className="rightAlign">{amount}</td>
+                <td>{price}</td>
+                <td className="barContainer">
+                  <div
+                    className="bar"
+                    style={{ width: `${normalizedValue}%` }}
+                  ></div>
+                </td>
+              </tr>
+            )
+          )}
         </tbody>
       </table>
 
@@ -57,13 +102,21 @@ const OrderBookRenderer = () => {
           </tr>
         </thead>
         <tbody>
-          {Object.entries(asks).map(([price, { count, amount }]) => (
-            <tr key={price}>
-              <td>{price}</td>
-              <td className="rightAlign">{amount}</td>
-              <td>{count}</td>
-            </tr>
-          ))}
+          {Object.entries(asks).map(
+            ([price, { count, amount, normalizedValue }]) => (
+              <tr key={price} className="dataRow">
+                <td>{price}</td>
+                <td className="rightAlign">{amount}</td>
+                <td>{count}</td>
+                <td className="barContainer">
+                  <div
+                    className="bar"
+                    style={{ width: `${normalizedValue}%` }}
+                  ></div>
+                </td>
+              </tr>
+            )
+          )}
         </tbody>
       </table>
     </div>

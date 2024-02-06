@@ -1,9 +1,17 @@
+@mixin progressBar {
+  .dataRow {
+    position: relative;
+  }
+
+  .barContainer {
+    padding: 0;
+  }
+}
+
 .orderBookContainer {
   display: flex;
 }
 .buyTable {
-  border: 2px solid green;
-
   th {
     width: 130px;
     font-size: 18px;
@@ -17,12 +25,20 @@
   }
   th.rightAlign {
     text-align: right;
+  }
+  @include progressBar;
+  .bar {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 0;
+    height: 100%;
+    background-color: rgb(160, 255, 160);
+    opacity: 0.3;
   }
 }
 
 .sellTable {
-  border: 2px solid red;
-
   th {
     width: 130px;
     font-size: 18px;
@@ -36,5 +52,15 @@
   }
   th.rightAlign {
     text-align: right;
+  }
+  @include progressBar;
+  .bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 0;
+    height: 100%;
+    background-color: rgb(247, 110, 110);
+    opacity: 0.3;
   }
 }
