@@ -1,5 +1,4 @@
 type ChannelId = number;
-type Price = number;
 type Count = number;
 type Amount = number;
 type OrderBookEntry = [Price, Count, Amount];
@@ -8,16 +7,19 @@ type SubscribedEvent = {
 };
 type InitialBookResponse = [ChannelId, OrderBookEntry[]];
 type RunningBookResponse = [ChannelId, OrderBookEntry];
+export type Price = number;
 export type WebSocketResponse = SubscribedEvent | InitialBookResponse | RunningBookResponse;
 
 export interface BookEntry {
     count: Count;
     amount: Amount;
 }
+type OrderBookUpdateCallback = (orderBook: { [price: Price]: BookEntry }) => void;
 class OrderBook {
     private subscribed: boolean = false;
     private orderBookInstance: { [price: Price]: BookEntry } = {};
     private ws: WebSocket;
+    private orderBookUpdateCallbacks: OrderBookUpdateCallback[] = [];
 
     constructor(wsUrl: string) {
         this.ws = new WebSocket(wsUrl);
@@ -111,6 +113,16 @@ class OrderBook {
         } else {
             delete this.orderBookInstance[price];
         }
+        this.notifyOrderBookUpdateCallbacks();
+    }
+    private notifyOrderBookUpdateCallbacks() {
+        this.orderBookUpdateCallbacks.forEach((callback) => {
+            callback(this.orderBookInstance);
+        });
+    }
+
+    public addNotifier(callback: OrderBookUpdateCallback) {
+        this.orderBookUpdateCallbacks.push(callback);
     }
 }
 
