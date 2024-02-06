@@ -1,0 +1,40 @@
+.orderBookContainer {
+  display: flex;
+}
+.buyTable {
+  border: 2px solid green;
+
+  th {
+    width: 130px;
+    font-size: 18px;
+  }
+  td {
+    width: 130px;
+    text-align: center;
+  }
+  td.rightAlign {
+    text-align: right;
+  }
+  th.rightAlign {
+    text-align: right;
+  }
+}
+
+.sellTable {
+  border: 2px solid red;
+
+  th {
+    width: 130px;
+    font-size: 18px;
+  }
+  td {
+    width: 130px;
+    text-align: center;
+  }
+  td.rightAlign {
+    text-align: right;
+  }
+  th.rightAlign {
+    text-align: right;
+  }
+}
