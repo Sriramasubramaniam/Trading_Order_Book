@@ -96,7 +96,21 @@ class OrderBook {
 
     private updateOrderBook(entry: OrderBookEntry) {
         const [price, count, amount] = entry;
-        this.orderBookInstance[price] = { count, amount };
+        // for reference for this algorithm to add/update/delete entry, can check the docs - https://docs.bitfinex.com/reference/ws-public-books#:~:text=Algorithm%20to%20create%20and%20keep%20a%20trading%20book%20instance%20updated
+        if (count > 0) {
+            // Add or update price level
+            const isExistingEntry = this.orderBookInstance[price];
+            if (!isExistingEntry) {
+                // If price doesn't exist, create a new one
+                this.orderBookInstance[price] = { count, amount };
+            } else {
+                // Update existing price level
+                this.orderBookInstance[price].count = count;
+                this.orderBookInstance[price].amount = amount;
+            }
+        } else {
+            delete this.orderBookInstance[price];
+        }
     }
 }
 
