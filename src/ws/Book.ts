@@ -15,7 +15,7 @@ export interface BookEntry {
   amount: Amount;
 }
 class OrderBook {
-  private subscribed: boolean = false;
+  static subscribed: boolean = false;
   private orderBookInstance: { [price: Price]: BookEntry } = {};
   private ws: WebSocket;
   private orderBookUpdateCallbacks: OrderBookUpdateCallback[] = [];
@@ -63,36 +63,38 @@ class OrderBook {
      * following which we get the initial response with a default of 50 data points of structure "InitialBookResponse". This can be used to populate the book initially.
      * Following that, future responses are of a similar structure but instead of 50 response we receive a single add/update response of structure "RunningBookResponse"
      */
-    if (this.isSubscribedEvent(message)) {
+    if (OrderBook.isSubscribedEvent(message)) {
       console.log("Subscribed");
-      this.subscribed = true;
-    } else if (this.isInitialBookResponse(message)) {
+      OrderBook.subscribed = true;
+    } else if (OrderBook.isInitialBookResponse(message)) {
       console.log("Initial book response");
       this.populateInitialBook(message);
-    } else if (this.isRunningBookResponse(message)) {
+    } else if (OrderBook.isRunningBookResponse(message)) {
       console.log("Running book response");
       this.updateOrderBook(message[1]);
     }
   }
 
   // these are type guards to check if the reponse is one of the 3 predefined structures
-  private isSubscribedEvent(
+  static isSubscribedEvent(
     message: WebSocketResponse
   ): message is SubscribedEvent {
     return (message as SubscribedEvent).event === "subscribed";
   }
-  private isInitialBookResponse(
+  static isInitialBookResponse(
     message: WebSocketResponse
   ): message is InitialBookResponse {
     return (
-      this.subscribed && Array.isArray((message as InitialBookResponse)[1][0])
+      OrderBook.subscribed &&
+      Array.isArray((message as InitialBookResponse)?.[1]?.[0])
     );
   }
-  private isRunningBookResponse(
+  static isRunningBookResponse(
     message: WebSocketResponse
   ): message is RunningBookResponse {
     return (
-      this.subscribed && !Array.isArray((message as RunningBookResponse)[1][0])
+      OrderBook.subscribed &&
+      typeof (message as RunningBookResponse)?.[1]?.[0] === "number"
     );
   }
 
