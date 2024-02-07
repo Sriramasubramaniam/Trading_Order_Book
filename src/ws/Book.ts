@@ -19,6 +19,7 @@ class OrderBook {
   private orderBookInstance: { [price: Price]: BookEntry } = {};
   private ws: WebSocket;
   private orderBookUpdateCallbacks: OrderBookUpdateCallback[] = [];
+  private channelId: number = 0;
 
   constructor(wsUrl: string) {
     this.ws = new WebSocket(wsUrl);
@@ -67,7 +68,7 @@ class OrderBook {
       this.subscribed = true;
     } else if (this.isInitialBookResponse(message)) {
       console.log("Initial book response");
-      this.populateInitialBook(message[1]);
+      this.populateInitialBook(message);
     } else if (this.isRunningBookResponse(message)) {
       console.log("Running book response");
       this.updateOrderBook(message[1]);
@@ -96,7 +97,9 @@ class OrderBook {
   }
 
   // populate and update methods
-  private populateInitialBook(entries: OrderBookEntry[]) {
+  private populateInitialBook(message: InitialBookResponse) {
+    const entries = message[1];
+    this.channelId = message[0]; //store channel id for unsubscribing on unmount
     this.orderBookInstance = {};
     entries.forEach(([price, count, amount]: OrderBookEntry) => {
       this.orderBookInstance[price] = { count, amount };
@@ -132,6 +135,29 @@ class OrderBook {
   public addNotifier(callback: OrderBookUpdateCallback) {
     this.orderBookUpdateCallbacks.push(callback);
   }
+
+  public unsubscribeTopic() {
+    const unsubscribeMessage = {
+      event: "unsubscribe",
+      chanId: this.channelId,
+    };
+    this.ws.send(JSON.stringify(unsubscribeMessage));
+  }
+
+  public closeWsConnection() {
+    this.ws.close();
+  }
+
+  public isWebSocketOpen() {
+    return this.ws.readyState === WebSocketState.OPEN;
+  }
+}
+
+enum WebSocketState {
+  CONNECTING = 0,
+  OPEN = 1,
+  CLOSING = 2,
+  CLOSED = 3,
 }
 
 export default OrderBook;

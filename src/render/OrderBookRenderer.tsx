@@ -50,7 +50,13 @@ const OrderBookRenderer = () => {
     };
     orderBook.addNotifier(handleOrderBookUpdate);
 
-    //write a clean up function later
+    // unsubscribe to the topic and close ws connections on unmount
+    return () => {
+      if (orderBook && orderBook.isWebSocketOpen()) {
+        orderBook.unsubscribeTopic();
+        orderBook.closeWsConnection();
+      }
+    };
   }, []);
 
   const normalize = (
