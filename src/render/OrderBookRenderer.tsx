@@ -3,7 +3,7 @@ import OrderBook, { BookEntry } from "../ws/Book";
 import "./orderbook.scss";
 import { Price } from "../_types";
 
-const wsUrl = "wss://api-pub.bitfinex.com/ws/2";
+const WS_URL = "wss://api-pub.bitfinex.com/ws/2";
 interface CummulativeBookEntry extends BookEntry {
   cummulativeTotal: number;
 }
@@ -14,7 +14,17 @@ const OrderBookRenderer = () => {
   const [asks, setAsks] = useState<{ [price: Price]: NormalizedBookEntry }>({});
   const [bids, setBids] = useState<{ [price: Price]: NormalizedBookEntry }>({});
   useEffect(() => {
-    const orderBook = new OrderBook(wsUrl);
+    const orderBook = new OrderBook(WS_URL);
+
+    //persist state as required in the assignment
+    const savedAskState = localStorage.getItem("orderBookAskState");
+    const savedBidState = localStorage.getItem("orderBookBidState");
+    if (savedAskState && savedBidState) {
+      setAsks(JSON.parse(savedAskState));
+      setBids(JSON.parse(savedBidState));
+    }
+
+    //state update handler
     const handleOrderBookUpdate = (updatedOrderBook: {
       [price: Price]: BookEntry;
     }) => {
@@ -52,11 +62,16 @@ const OrderBookRenderer = () => {
 
     // unsubscribe to the topic and close ws connections on unmount
     return () => {
+      //persist state
+      localStorage.setItem("orderBookAskState", JSON.stringify(asks));
+      localStorage.setItem("orderBookBidState", JSON.stringify(bids));
       if (orderBook && orderBook.isWebSocketOpen()) {
         orderBook.unsubscribeTopic();
         orderBook.closeWsConnection();
       }
     };
+    // escaping this linter warning as adding dependency does not make sense here since we use it only for clean up
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const normalize = (
