@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import OrderBook, { BookEntry, Price } from "../ws/Book";
+import OrderBook, { BookEntry } from "../ws/Book";
 import "./orderbook.scss";
+import { Price } from "../_types";
 
 const wsUrl = "wss://api-pub.bitfinex.com/ws/2";
 interface CummulativeBookEntry extends BookEntry {
@@ -41,8 +42,8 @@ const OrderBookRenderer = () => {
           maxBidTotal = Math.max(maxBidTotal, cummulativeBidTotal);
         }
       }
-      const normalizedAskEntries = normalize(askEntries, maxAskTotal);
-      const normalizedBidEntries = normalize(bidEntries, maxBidTotal);
+      const normalizedAskEntries = normalize(askEntries, maxAskTotal, false);
+      const normalizedBidEntries = normalize(bidEntries, maxBidTotal, true);
 
       setAsks(normalizedAskEntries);
       setBids(normalizedBidEntries);
@@ -54,12 +55,15 @@ const OrderBookRenderer = () => {
 
   const normalize = (
     entries: { [price: Price]: CummulativeBookEntry },
-    maxTotal: number
+    maxTotal: number,
+    reverseOrder: boolean
   ) => {
     const normalizedEntries: { [price: Price]: NormalizedBookEntry } = {};
     for (const price in entries) {
       const entry = entries[price];
-      const normalizedTotal = (entry.cummulativeTotal / maxTotal) * 100;
+      const normalizedTotal = reverseOrder
+        ? (1 - entry.cummulativeTotal / maxTotal) * 100 // reverse the normalization for buy orders as it makes sense logically
+        : (entry.cummulativeTotal / maxTotal) * 100;
       normalizedEntries[price] = { ...entry, normalizedValue: normalizedTotal };
     }
     return normalizedEntries;

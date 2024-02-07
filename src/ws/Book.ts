@@ -1,25 +1,19 @@
-type ChannelId = number;
-type Count = number;
-type Amount = number;
-type OrderBookEntry = [Price, Count, Amount];
-type SubscribedEvent = {
-  event: "subscribed";
-};
-type InitialBookResponse = [ChannelId, OrderBookEntry[]];
-type RunningBookResponse = [ChannelId, OrderBookEntry];
-export type Price = number;
-export type WebSocketResponse =
-  | SubscribedEvent
-  | InitialBookResponse
-  | RunningBookResponse;
+import {
+  Amount,
+  Count,
+  InitialBookResponse,
+  OrderBookEntry,
+  OrderBookUpdateCallback,
+  Price,
+  RunningBookResponse,
+  SubscribedEvent,
+  WebSocketResponse,
+} from "../_types";
 
 export interface BookEntry {
   count: Count;
   amount: Amount;
 }
-type OrderBookUpdateCallback = (orderBook: {
-  [price: Price]: BookEntry;
-}) => void;
 class OrderBook {
   private subscribed: boolean = false;
   private orderBookInstance: { [price: Price]: BookEntry } = {};
@@ -29,10 +23,6 @@ class OrderBook {
   constructor(wsUrl: string) {
     this.ws = new WebSocket(wsUrl);
     this.setupWebSocket();
-  }
-
-  get bookInstance(): { [price: Price]: BookEntry } {
-    return this.orderBookInstance;
   }
 
   private setupWebSocket() {
@@ -111,6 +101,7 @@ class OrderBook {
     entries.forEach(([price, count, amount]: OrderBookEntry) => {
       this.orderBookInstance[price] = { count, amount };
     });
+    this.notifyOrderBookUpdateCallbacks();
   }
 
   private updateOrderBook(entry: OrderBookEntry) {
